@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Doctor-Assist | AI Clinical Suite + Delivery Tracking</title>
     <style>
         * {
@@ -15,7 +15,7 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: 
                 linear-gradient(rgba(255,255,255,0.88), rgba(248,250,255,0.92)),
-                url('https://www.google.com/imgres?q=waterfalls%20around%20in%20jungle%5C&imgurl=https%3A%2F%2Fimages.pexels.com%2Fphotos%2F19947972%2Fpexels-photo-19947972%2Ffree-photo-of-waterfall-in-a-jungle.jpeg&imgrefurl=https%3A%2F%2Fwww.pexels.com%2Fphoto%2Fwaterfall-in-a-jungle-19947972%2F&docid=fFXtLHokYXiLJM&tbnid=mK26i7RYn7cIyM&vet=12ahUKEwjo2Mie3LGUAxViUGwGHdu_OToQnPAOegQIHBAB..i&w=4000&h=6000&hcb=2&ved=2ahUKEwjo2Mie3LGUAxViUGwGHdu_OToQnPAOegQIHBAB');
+                url('https://images.pexels.com/photos/19947972/pexels-photo-19947972.jpeg');
             background-size: cover;
             background-position: center 30%;
             background-attachment: fixed;
@@ -49,8 +49,9 @@
 
         .logo h1 {
             background: linear-gradient(135deg, #1E5F7A, #2C7DA0);
-            -webkit-clip: text;
-            -webkit-text-fill-color: transparent;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
             font-size: 28px;
             font-weight: 700;
         }
@@ -72,6 +73,7 @@
             backdrop-filter: blur(8px);
             padding: 8px;
             border-radius: 60px;
+            flex-wrap: wrap;
         }
 
         .tab-btn {
@@ -147,6 +149,7 @@
             cursor: pointer;
             font-weight: 500;
             color: #1e5f7a;
+            transition: all 0.2s;
         }
 
         .symptom-btn:hover, .symptom-btn.active {
@@ -329,6 +332,7 @@
             padding: 6px 12px;
             font-size: 12px;
             margin-left: 10px;
+            margin-top: 8px;
         }
 
         .tab-content { display: none; }
@@ -337,6 +341,8 @@
         @media (max-width: 768px) {
             .main-grid { grid-template-columns: 1fr; }
             .header { flex-direction: column; text-align: center; gap: 12px; }
+            .tabs { flex-direction: column; border-radius: 28px; }
+            .tab-btn { text-align: center; }
         }
     </style>
 </head>
@@ -344,17 +350,17 @@
 <div class="container">
     <div class="header">
         <div class="logo">
-            <h1>🏥 Doctor-Assist | AI CDSS</h1>
+            <h1>🏥 Doctor-Assist</h1>
             <p>Clinical Decision Support | Smart Recommendations | Medicine Delivery</p>
         </div>
         <div class="badge">⚕️ Hospital Grade | AI Augmented + Delivery</div>
     </div>
 
     <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('prescription')">📝 Prescription Suite</button>
-        <button class="tab-btn" onclick="switchTab('disease')">🔬 AI Dermatology</button>
-        <button class="tab-btn" onclick="switchTab('monitor')">📊 AI Monitor & Risk</button>
-        <button class="tab-btn" onclick="switchTab('delivery')">🚚 Medicine Delivery</button>
+        <button class="tab-btn active" data-tab="prescription">📝 Prescription Suite</button>
+        <button class="tab-btn" data-tab="disease">🔬 AI Dermatology</button>
+        <button class="tab-btn" data-tab="monitor">📊 AI Monitor & Risk</button>
+        <button class="tab-btn" data-tab="delivery">🚚 Medicine Delivery</button>
     </div>
 
     <!-- Tab 1: Prescription -->
@@ -399,7 +405,11 @@
     <!-- Tab 2: AI Disease Detection -->
     <div id="diseaseTab" class="tab-content">
         <div class="card"><h2>🔬 AI-Powered Skin Analysis</h2><p>Upload clinical dermatology image for instant AI screening.</p>
-            <div class="upload-area" onclick="document.getElementById('imageUpload').click()"><input type="file" id="imageUpload" accept="image/*" onchange="previewImage(this)"><div id="uploadPrompt"><p>📸 Upload skin lesion / rash image</p></div><img id="imagePreview" class="preview-image" style="display:none"></div>
+            <div class="upload-area" onclick="document.getElementById('imageUpload').click()">
+                <input type="file" id="imageUpload" accept="image/*" style="display:none" onchange="previewImage(this)">
+                <div id="uploadPrompt"><p>📸 Upload skin lesion / rash image</p></div>
+                <img id="imagePreview" class="preview-image" style="display:none" alt="Preview">
+            </div>
             <button onclick="analyzeSkinDisease()" style="width:100%;margin-top:24px" id="analyzeBtn">🔍 Run AI Diagnosis</button>
             <div id="diseaseResults" style="margin-top:28px;display:none"><div id="diseaseInfo"></div></div>
         </div>
@@ -413,7 +423,7 @@
         </div>
     </div>
 
-    <!-- Tab 4: Medicine Delivery (Only for consulted patients) -->
+    <!-- Tab 4: Medicine Delivery -->
     <div id="deliveryTab" class="tab-content">
         <div class="card"><h2>🚚 Medicine Delivery Manager</h2><p style="color:#2c5a74;margin-bottom:20px">📌 Only for patients who have already consulted. Request delivery for prescribed medicines.</p>
             <div class="form-group"><label>Select Patient (from consultation history)</label><select id="deliveryPatientSelect" onchange="loadDeliveryDetails()"><option value="">-- Select a consulted patient --</option></select></div>
@@ -430,98 +440,238 @@
 </div>
 
 <script>
-    let currentMedicines = [], selectedSymptoms = [], allPrescriptions = [];
+    let currentMedicines = [], selectedSymptoms = [], allPrescriptions = [], deliveryRequests = [];
 
-    function switchTab(tab) {
+    // Tab switching fixed
+    function switchTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(tab + 'Tab').classList.add('active');
-        event.target.classList.add('active');
-        if (tab === 'monitor') loadPrescriptionsForMonitor();
-        if (tab === 'delivery') loadDeliveryTab();
+        document.getElementById(tabId + 'Tab').classList.add('active');
+        const activeBtn = Array.from(document.querySelectorAll('.tab-btn')).find(btn => btn.getAttribute('data-tab') === tabId);
+        if(activeBtn) activeBtn.classList.add('active');
+        if (tabId === 'monitor') loadPrescriptionsForMonitor();
+        if (tabId === 'delivery') loadDeliveryTab();
     }
 
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        const tabName = btn.getAttribute('data-tab');
+        if(tabName) {
+            btn.addEventListener('click', () => switchTab(tabName));
+        } else {
+            const fallback = btn.innerText.includes('Prescription') ? 'prescription' : btn.innerText.includes('Dermatology') ? 'disease' : btn.innerText.includes('Monitor') ? 'monitor' : 'delivery';
+            btn.setAttribute('data-tab', fallback);
+            btn.addEventListener('click', () => switchTab(fallback));
+        }
+    });
+
+    // Symptom toggle
     document.querySelectorAll('.symptom-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
             const symptom = this.dataset.symptom;
-            if (selectedSymptoms.includes(symptom)) { selectedSymptoms = selectedSymptoms.filter(s => s !== symptom); this.classList.remove('active'); }
-            else { selectedSymptoms.push(symptom); this.classList.add('active'); }
+            if (selectedSymptoms.includes(symptom)) {
+                selectedSymptoms = selectedSymptoms.filter(s => s !== symptom);
+                this.classList.remove('active');
+            } else {
+                selectedSymptoms.push(symptom);
+                this.classList.add('active');
+            }
         });
     });
 
     async function getAISuggestions() {
         const additional = document.getElementById('additionalSymptoms').value;
         let allSymptoms = [...selectedSymptoms];
-        if (additional) allSymptoms = allSymptoms.concat(additional.split(',').map(s=>s.trim()).filter(s=>s));
-        if (!allSymptoms.length) { alert('Select symptoms'); return; }
-        const btn = event.target; btn.disabled=true; btn.textContent="🤖 AI analyzing...";
+        if (additional) {
+            const extra = additional.split(',').map(s=>s.trim().toLowerCase()).filter(s=>s);
+            allSymptoms = [...allSymptoms, ...extra];
+        }
+        if (!allSymptoms.length) { alert('Please select at least one symptom or add notes.'); return; }
+        const btn = event?.target || document.querySelector('#prescriptionTab button[onclick="getAISuggestions()"]');
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = "🤖 AI analyzing...";
+        
         setTimeout(() => {
             const map = new Map();
-            if (allSymptoms.includes('fever')||allSymptoms.includes('infection')) { map.set('Paracetamol 500mg',{dosage:'500mg every 6h',timing:'After food',food:'After food'}); map.set('Azithromycin',{dosage:'500mg once daily',timing:'Morning',food:'Before food'}); }
-            if (allSymptoms.includes('cough')||allSymptoms.includes('cold')) map.set('Dextromethorphan syrup',{dosage:'10ml',timing:'3 times daily',food:'After food'});
+            if (allSymptoms.some(s => s.includes('fever') || s.includes('infection'))) { 
+                map.set('Paracetamol 500mg',{dosage:'500mg every 6h',timing:'After food',food:'After food'}); 
+                map.set('Azithromycin',{dosage:'500mg once daily',timing:'Morning',food:'Before food'}); 
+            }
+            if (allSymptoms.some(s => s.includes('cough') || s.includes('cold'))) map.set('Dextromethorphan syrup',{dosage:'10ml',timing:'3 times daily',food:'After food'});
             if (allSymptoms.includes('hypertension')) map.set('Amlodipine 5mg',{dosage:'5mg daily',timing:'Morning',food:'Before food'});
             if (allSymptoms.includes('diabetes')) map.set('Metformin 500mg',{dosage:'500mg twice daily',timing:'Twice daily',food:'With food'});
-            if (allSymptoms.includes('skin_infection')) { map.set('Mupirocin ointment',{dosage:'apply thin layer',timing:'Twice daily',food:'Topical'}); map.set('Cephalexin 500mg',{dosage:'500mg q12h',timing:'Twice daily',food:'After food'}); }
+            if (allSymptoms.includes('skin_infection')) { 
+                map.set('Mupirocin ointment',{dosage:'apply thin layer',timing:'Twice daily',food:'Topical'}); 
+                map.set('Cephalexin 500mg',{dosage:'500mg q12h',timing:'Twice daily',food:'After food'}); 
+            }
             if (!map.size) map.set('Ibuprofen 400mg',{dosage:'400mg as needed',timing:'After food',food:'After food'});
+            
             const alertsDiv = document.getElementById('alertsContainer');
             alertsDiv.innerHTML = '';
-            if (allSymptoms.includes('diabetes') && allSymptoms.includes('hypertension')) alertsDiv.innerHTML += `<div class="alert alert-warning">⚠️ Monitor BP & glucose interaction risk.</div>`;
+            if (allSymptoms.includes('diabetes') && allSymptoms.includes('hypertension')) alertsDiv.innerHTML += `<div class="alert alert-warning">⚠️ Monitor BP & glucose interaction risk. Consider renal function.</div>`;
+            if (allSymptoms.includes('fever') && allSymptoms.includes('cough')) alertsDiv.innerHTML += `<div class="alert alert-info">💡 Consider COVID/flu screening per local guidelines.</div>`;
+            
             for (let [med, details] of map.entries()) addMedicine(med, details.dosage, details.timing, details.food);
-            btn.disabled=false; btn.textContent="🤖 Get AI Suggestions";
-        }, 400);
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }, 500);
     }
 
-    function addMedicine(name, dosage, timing, food) { currentMedicines.push({ id: Date.now()+Math.random(), medicine: name, dosage, timing, food }); renderMedicinesList(); }
+    function addMedicine(name, dosage, timing, food) { 
+        currentMedicines.push({ id: Date.now() + Math.random()*10000, medicine: name, dosage, timing, food }); 
+        renderMedicinesList(); 
+    }
+    
     function renderMedicinesList() {
         const container = document.getElementById('medicinesList');
         if (!currentMedicines.length) { container.innerHTML = '<p style="color:#6b8cae;text-align:center;padding:20px">No medicines prescribed.</p>'; return; }
         container.innerHTML = currentMedicines.map(med => `<div class="medicine-item"><div class="medicine-header"><span class="medicine-name">💊 ${escapeHtml(med.medicine)}</span><button class="remove-medicine" onclick="removeMedicine(${med.id})">Remove</button></div><div class="medicine-details"><input type="text" placeholder="Dosage" value="${escapeHtml(med.dosage)}" onchange="updateMedicine(${med.id}, 'dosage', this.value)"><select onchange="updateMedicine(${med.id}, 'timing', this.value)">${['Morning','Afternoon','Night','3 times daily','Twice daily'].map(t=>`<option ${med.timing===t?'selected':''}>${t}</option>`).join('')}</select><select onchange="updateMedicine(${med.id}, 'food', this.value)">${['After food','Before food','With food','Empty stomach'].map(f=>`<option ${med.food===f?'selected':''}>${f}</option>`).join('')}</select></div></div>`).join('');
         updatePreview();
     }
+    
     function removeMedicine(id) { currentMedicines = currentMedicines.filter(m=>m.id!==id); renderMedicinesList(); }
     function updateMedicine(id,field,val) { let med=currentMedicines.find(m=>m.id===id); if(med) { med[field]=val; updatePreview(); } }
+    
     function updatePreview() {
         const preview=document.getElementById('prescriptionPreview'), name=document.getElementById('patientName').value;
-        if(currentMedicines.length && name){ preview.style.display='block'; document.getElementById('previewContent').innerHTML=`<table class="preview-table"><thead><tr><th>Medication</th><th>Dosage</th><th>Timing</th><th>Instruction</th></tr></thead><tbody>${currentMedicines.map(m=>`<tr><td>${escapeHtml(m.medicine)}</td><td>${escapeHtml(m.dosage)}</td><td>${m.timing}</td><td>${m.food}</td></tr>`).join('')}</tbody></table>`;}
-        else preview.style.display='none';
+        if(currentMedicines.length && name.trim() !== ''){ 
+            preview.style.display='block'; 
+            document.getElementById('previewContent').innerHTML=`<table class="preview-table"><thead><tr><th>Medication</th><th>Dosage</th><th>Timing</th><th>Instruction</th></tr></thead><tbody>${currentMedicines.map(m=>`<tr><td>${escapeHtml(m.medicine)}</td><td>${escapeHtml(m.dosage)}</td><td>${m.timing}</td><td>${m.food}</td></tr>`).join('')}</tbody></table>`;
+        } else preview.style.display='none';
     }
 
-    async function savePrescription() {
-        const pName = document.getElementById('patientName').value, pAge = document.getElementById('patientAge').value, pPhone = document.getElementById('patientPhone').value, pAddress = document.getElementById('patientAddress').value, notes = document.getElementById('doctorNotes').value;
-        if (!pName || !pAge || !currentMedicines.length) { alert('Complete name, age and medicines'); return; }
+    function savePrescription() {
+        const pName = document.getElementById('patientName').value.trim();
+        const pAge = document.getElementById('patientAge').value;
+        const pPhone = document.getElementById('patientPhone').value;
+        const pAddress = document.getElementById('patientAddress').value;
+        const notes = document.getElementById('doctorNotes').value;
+        if (!pName || !pAge || !currentMedicines.length) { alert('Please complete patient name, age, and add at least one medicine.'); return; }
         const newId = Date.now();
-        const record = { id: newId, patient_name: pName, age: parseInt(pAge), phone: pPhone, address: pAddress, symptoms: selectedSymptoms, medicines: [...currentMedicines], doctor_notes: notes, created_at: new Date().toISOString(), deliveryRequested: false, deliveryStatus: 'none' };
+        const record = { id: newId, patient_name: pName, age: parseInt(pAge), phone: pPhone, address: pAddress, symptoms: [...selectedSymptoms], medicines: JSON.parse(JSON.stringify(currentMedicines)), doctor_notes: notes, created_at: new Date().toISOString(), deliveryRequested: false, deliveryStatus: 'none' };
         allPrescriptions.unshift(record);
         localStorage.setItem('doctorAssistRx', JSON.stringify(allPrescriptions));
         alert(`✅ Prescription saved for ${pName}. Patient can request medicine delivery from "Medicine Delivery" tab.`);
-        loadHistory(); loadDeliveryDropdowns();
+        loadHistory(); 
+        loadDeliveryDropdowns();
     }
 
-    async function generatePDF() { alert('📄 PDF Prescription generation ready (integration with backend).'); }
+    async function generatePDF() { 
+        alert('📄 PDF Prescription ready for download (simulated). In production, would generate secure clinical document.'); 
+    }
+    
     async function loadHistory() {
-        const stored = localStorage.getItem('doctorAssistRx'); if(stored) allPrescriptions = JSON.parse(stored);
+        const stored = localStorage.getItem('doctorAssistRx'); 
+        if(stored) allPrescriptions = JSON.parse(stored);
         const histDiv = document.getElementById('historyList');
         if(!allPrescriptions.length) { histDiv.innerHTML='<p>No previous prescriptions.</p>'; return; }
         histDiv.innerHTML = allPrescriptions.map(p => `<div class="history-item" onclick="loadPrescriptionToEditor(${p.id})"><strong>${escapeHtml(p.patient_name)}</strong> (Age ${p.age}) - ${new Date(p.created_at).toLocaleDateString()}<br><small>💊 ${p.medicines.length} meds | 📞 ${p.phone || 'No phone'}</small></div>`).join('');
     }
-    function loadPrescriptionToEditor(id) { const rec = allPrescriptions.find(r=>r.id===id); if(rec){ document.getElementById('patientName').value=rec.patient_name; document.getElementById('patientAge').value=rec.age; document.getElementById('patientPhone').value=rec.phone||''; document.getElementById('patientAddress').value=rec.address||''; document.getElementById('doctorNotes').value=rec.doctor_notes||''; currentMedicines=JSON.parse(JSON.stringify(rec.medicines)); renderMedicinesList(); selectedSymptoms=[...rec.symptoms]; document.querySelectorAll('.symptom-btn').forEach(btn=>{if(selectedSymptoms.includes(btn.dataset.symptom)) btn.classList.add('active'); else btn.classList.remove('active');}); updatePreview(); } }
-    function clearPrescription(){ if(confirm('Clear all?')){ currentMedicines=[]; renderMedicinesList(); document.getElementById('patientName').value=''; document.getElementById('patientAge').value=''; document.getElementById('patientPhone').value=''; document.getElementById('patientAddress').value=''; document.getElementById('doctorNotes').value=''; selectedSymptoms=[]; document.querySelectorAll('.symptom-btn').forEach(btn=>btn.classList.remove('active')); document.getElementById('alertsContainer').innerHTML=''; document.getElementById('prescriptionPreview').style.display='none'; } }
+    
+    function loadPrescriptionToEditor(id) { 
+        const rec = allPrescriptions.find(r=>r.id===id); 
+        if(rec){
+            document.getElementById('patientName').value=rec.patient_name; 
+            document.getElementById('patientAge').value=rec.age; 
+            document.getElementById('patientPhone').value=rec.phone||''; 
+            document.getElementById('patientAddress').value=rec.address||''; 
+            document.getElementById('doctorNotes').value=rec.doctor_notes||''; 
+            currentMedicines=JSON.parse(JSON.stringify(rec.medicines)); 
+            renderMedicinesList(); 
+            selectedSymptoms=[...rec.symptoms]; 
+            document.querySelectorAll('.symptom-btn').forEach(btn=>{
+                if(selectedSymptoms.includes(btn.dataset.symptom)) btn.classList.add('active'); 
+                else btn.classList.remove('active');
+            }); 
+            updatePreview(); 
+            switchTab('prescription');
+        } 
+    }
+    
+    function clearPrescription(){ 
+        if(confirm('Clear all current prescription data?')){
+            currentMedicines=[]; 
+            renderMedicinesList(); 
+            document.getElementById('patientName').value=''; 
+            document.getElementById('patientAge').value=''; 
+            document.getElementById('patientPhone').value=''; 
+            document.getElementById('patientAddress').value=''; 
+            document.getElementById('doctorNotes').value=''; 
+            selectedSymptoms=[]; 
+            document.querySelectorAll('.symptom-btn').forEach(btn=>btn.classList.remove('active')); 
+            document.getElementById('alertsContainer').innerHTML=''; 
+            document.getElementById('prescriptionPreview').style.display='none'; 
+        } 
+    }
 
-    // Disease simulation
-    function previewImage(input){ if(input.files[0]){ const reader=new FileReader(); reader.onload=e=>{ document.getElementById('imagePreview').src=e.target.result; document.getElementById('imagePreview').style.display='block'; document.getElementById('uploadPrompt').style.display='none'; }; reader.readAsDataURL(input.files[0]); } }
-    async function analyzeSkinDisease(){ const img=document.getElementById('imageUpload').files[0]; if(!img){ alert('Upload image'); return; } const btn=document.getElementById('analyzeBtn'); btn.textContent="🔬 AI Scanning..."; btn.disabled=true; setTimeout(()=>{ document.getElementById('diseaseResults').style.display='block'; document.getElementById('diseaseInfo').innerHTML=`<div class="alert alert-info"><h3>🔍 AI Result</h3><p><strong>Condition:</strong> Actinic Keratosis (suspected)</p><p><strong>Confidence:</strong> 87%</p><p><strong>Severity:</strong> Low-Moderate</p><p>Topical treatment recommended. Consultation advised.</p></div>`; btn.textContent="🔍 Analyze Image"; btn.disabled=false; },800); }
+    // Dermatology AI
+    function previewImage(input){ 
+        if(input.files && input.files[0]){ 
+            const reader=new FileReader(); 
+            reader.onload=e=>{ 
+                document.getElementById('imagePreview').src=e.target.result; 
+                document.getElementById('imagePreview').style.display='block'; 
+                document.getElementById('uploadPrompt').style.display='none'; 
+            }; 
+            reader.readAsDataURL(input.files[0]); 
+        } 
+    }
+    
+    async function analyzeSkinDisease(){ 
+        const imgInput=document.getElementById('imageUpload'); 
+        if(!imgInput.files || !imgInput.files[0]){ alert('Please upload a skin image first'); return; } 
+        const btn=document.getElementById('analyzeBtn'); 
+        const originalText = btn.textContent;
+        btn.textContent="🔬 AI Scanning..."; 
+        btn.disabled=true; 
+        setTimeout(()=>{ 
+            document.getElementById('diseaseResults').style.display='block'; 
+            document.getElementById('diseaseInfo').innerHTML=`<div class="alert alert-info"><h3>🔍 AI Result</h3><p><strong>Condition:</strong> Actinic Keratosis / Benign lesion (suspected)</p><p><strong>Confidence:</strong> 87%</p><p><strong>Severity:</strong> Low-Moderate</p><p>Topical treatment recommended. Consultation advised.</p></div>`; 
+            btn.textContent=originalText; 
+            btn.disabled=false; 
+        },800); 
+    }
 
-    // Monitor
-    async function loadPrescriptionsForMonitor(){ const stored=localStorage.getItem('doctorAssistRx'); if(stored) allPrescriptions=JSON.parse(stored); const select=document.getElementById('prescriptionSelect'); select.innerHTML='<option value="">-- Select patient record --</option>'; allPrescriptions.forEach(p=>{ select.innerHTML+=`<option value='${p.id}'>${escapeHtml(p.patient_name)} - ${new Date(p.created_at).toLocaleDateString()}</option>`; }); }
-    async function monitorPrescription(){ const id=parseInt(document.getElementById('prescriptionSelect').value); if(!id){ document.getElementById('monitorResults').style.display='none'; return; } const rec=allPrescriptions.find(r=>r.id===id); if(rec){ let riskScore=0.2; if(rec.age>70) riskScore+=0.3; if(rec.medicines.length>4) riskScore+=0.25; if(rec.symptoms.includes('hypertension')||rec.symptoms.includes('diabetes')) riskScore+=0.2; riskScore=Math.min(riskScore,0.98); const riskLevel=riskScore<0.4?"Low Risk":(riskScore<0.7?"Moderate Risk":"High Risk"); document.getElementById('monitorResults').style.display='block'; document.getElementById('riskLevel').innerHTML=`📈 ${riskLevel}`; document.getElementById('riskFill').style.width=`${riskScore*100}%`; document.getElementById('riskScore').innerHTML=`AI risk index: ${(riskScore*100).toFixed(1)}%`; document.getElementById('qualityScore').innerHTML=`<div class="alert alert-info">📊 Quality score: ${Math.round((1-riskScore)*100)}%</div>`; document.getElementById('monitorAlerts').innerHTML='<h3>⚠️ Alerts</h3><p>No critical alerts</p>'; document.getElementById('monitorRecommendations').innerHTML='<h3>💡 Recommendations</h3><div class="alert alert-info">Follow-up in 2 weeks.</div>'; } }
+    // Monitor functions
+    async function loadPrescriptionsForMonitor(){ 
+        const stored=localStorage.getItem('doctorAssistRx'); 
+        if(stored) allPrescriptions=JSON.parse(stored); 
+        const select=document.getElementById('prescriptionSelect'); 
+        select.innerHTML='<option value="">-- Select patient record --</option>'; 
+        allPrescriptions.forEach(p=>{ select.innerHTML+=`<option value='${p.id}'>${escapeHtml(p.patient_name)} - ${new Date(p.created_at).toLocaleDateString()}</option>`; }); 
+    }
+    
+    async function monitorPrescription(){ 
+        const id=parseInt(document.getElementById('prescriptionSelect').value); 
+        if(!id || isNaN(id)){ document.getElementById('monitorResults').style.display='none'; return; } 
+        const rec=allPrescriptions.find(r=>r.id===id); 
+        if(rec){ 
+            let riskScore=0.2; 
+            if(rec.age>70) riskScore+=0.3; 
+            if(rec.medicines.length>4) riskScore+=0.25; 
+            if(rec.symptoms.includes('hypertension')||rec.symptoms.includes('diabetes')) riskScore+=0.2; 
+            if(rec.medicines.some(m=>m.medicine.includes('steroid')||m.medicine.includes('NSAID'))) riskScore+=0.1;
+            riskScore=Math.min(riskScore,0.98); 
+            const riskLevel=riskScore<0.4?"Low Risk":(riskScore<0.7?"Moderate Risk":"High Risk"); 
+            document.getElementById('monitorResults').style.display='block'; 
+            document.getElementById('riskLevel').innerHTML=`📈 ${riskLevel}`; 
+            document.getElementById('riskFill').style.width=`${riskScore*100}%`; 
+            document.getElementById('riskScore').innerHTML=`AI risk index: ${(riskScore*100).toFixed(1)}%`; 
+            document.getElementById('qualityScore').innerHTML=`<div class="alert alert-info">📊 Quality score: ${Math.round((1-riskScore)*100)}%</div>`; 
+            document.getElementById('monitorAlerts').innerHTML='<h3>⚠️ Clinical Alerts</h3><div class="alert alert-warning">'+(riskScore>0.6? 'Patient requires follow-up within 2 weeks.': 'No critical alerts, routine monitoring.')+'</div>'; 
+            document.getElementById('monitorRecommendations').innerHTML='<h3>💡 Recommendations</h3><div class="alert alert-info">Consider medication reconciliation and regular BP/glucose checks if applicable.</div>'; 
+        } 
+    }
 
-    // ========== DELIVERY MODULE (only for consulted patients) ==========
-    let deliveryRequests = [];
-
+    // Delivery Module
     function loadDeliveryDropdowns() {
-        const stored = localStorage.getItem('doctorAssistRx'); if(stored) allPrescriptions = JSON.parse(stored);
-        const storedDel = localStorage.getItem('deliveryRequests'); if(storedDel) deliveryRequests = JSON.parse(storedDel);
+        const stored = localStorage.getItem('doctorAssistRx'); 
+        if(stored) allPrescriptions = JSON.parse(stored);
+        const storedDel = localStorage.getItem('deliveryRequests'); 
+        if(storedDel) deliveryRequests = JSON.parse(storedDel);
         const select = document.getElementById('deliveryPatientSelect');
+        if(!select) return;
         select.innerHTML = '<option value="">-- Select a consulted patient --</option>';
         allPrescriptions.forEach(p => { if(p.patient_name) select.innerHTML += `<option value='${p.id}'>${escapeHtml(p.patient_name)} (${p.age} yrs) - ${new Date(p.created_at).toLocaleDateString()}</option>`; });
         renderDeliveryHistory();
@@ -529,12 +679,12 @@
 
     function loadDeliveryDetails() {
         const id = parseInt(document.getElementById('deliveryPatientSelect').value);
-        if(!id) { document.getElementById('deliveryDetails').style.display='none'; return; }
+        if(!id || isNaN(id)) { document.getElementById('deliveryDetails').style.display='none'; return; }
         const patient = allPrescriptions.find(p=>p.id===id);
         if(patient){
             document.getElementById('deliveryDetails').style.display='block';
             document.getElementById('deliveryPatientInfo').innerHTML = `<strong>🧑‍⚕️ Patient:</strong> ${escapeHtml(patient.patient_name)} | Age: ${patient.age} | Last Consultation: ${new Date(patient.created_at).toLocaleDateString()}`;
-            let medHtml = '<h4>Prescribed Medicines:</h4><ul>';
+            let medHtml = '<h4>💊 Prescribed Medicines:</h4><ul>';
             patient.medicines.forEach(m=>{ medHtml += `<li>💊 ${escapeHtml(m.medicine)} - ${m.dosage} (${m.timing}, ${m.food})</li>`; });
             medHtml += '</ul>';
             document.getElementById('deliveryMedicinesList').innerHTML = medHtml;
@@ -545,10 +695,10 @@
 
     function requestDelivery() {
         const id = parseInt(document.getElementById('deliveryPatientSelect').value);
-        if(!id){ alert('Select a patient first'); return; }
+        if(!id){ alert('Please select a patient first'); return; }
         const patient = allPrescriptions.find(p=>p.id===id);
         if(!patient) return;
-        if(!patient.address || !patient.phone){ alert('⚠️ Patient address or phone missing. Please update patient details in Prescription tab first.'); return; }
+        if(!patient.address || !patient.address.trim() || !patient.phone){ alert('⚠️ Patient address or phone missing. Please update patient details in Prescription tab first.'); return; }
         const existing = deliveryRequests.find(r=>r.prescriptionId===id && r.status!=='delivered');
         if(existing){ alert('Delivery already requested for this prescription. Check status below.'); return; }
         const newRequest = {
@@ -566,7 +716,6 @@
         localStorage.setItem('deliveryRequests', JSON.stringify(deliveryRequests));
         alert(`✅ Delivery request created for ${patient.patient_name}. Pharmacy will process soon.`);
         renderDeliveryHistory();
-        // Update status in prescription record
         patient.deliveryRequested = true;
         patient.deliveryStatus = 'pending';
         localStorage.setItem('doctorAssistRx', JSON.stringify(allPrescriptions));
@@ -606,12 +755,20 @@
 
     function loadDeliveryTab() { loadDeliveryDropdowns(); renderDeliveryHistory(); }
 
-    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+    function escapeHtml(str) { if(!str) return ''; return String(str).replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
 
-    document.getElementById('patientName').addEventListener('input', updatePreview);
-    loadHistory();
-    initDeliveryData();
-    function initDeliveryData(){ const stored=localStorage.getItem('deliveryRequests'); if(stored) deliveryRequests=JSON.parse(stored); else deliveryRequests=[]; }
+    document.getElementById('patientName')?.addEventListener('input', updatePreview);
+    document.getElementById('patientAddress')?.addEventListener('change', updatePreview);
+    
+    function initData() {
+        const storedRx = localStorage.getItem('doctorAssistRx'); 
+        if(storedRx) allPrescriptions = JSON.parse(storedRx);
+        const storedDel = localStorage.getItem('deliveryRequests'); 
+        if(storedDel) deliveryRequests = JSON.parse(storedDel);
+        loadHistory();
+        loadDeliveryDropdowns();
+    }
+    initData();
 </script>
 </body>
 </html>
